@@ -40,7 +40,14 @@ jobs:
             -H "Content-Type: multipart/form-data" \
             -F "file=@${PROXY}.zip" \
             -o import.json
-          echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+          cat import.json
+          REVISION=$(jq -r '.revision' import.json)
+          if [ "$REVISION" = "null" ] || [ -z "$REVISION" ]; then
+            echo "Import failed: no revision returned"
+            exit 1
+          fi
+          echo "REVISION=$REVISION" >> $GITHUB_ENV
+
 
       - name: Deploy Proxy
         run: |
