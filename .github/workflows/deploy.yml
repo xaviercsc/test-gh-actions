@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: test-env
-      PROXY: helloworld
+      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD }}
+      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,8 +56,8 @@ jobs:
     needs: deploy-helloworld
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: test-env
-      PROXY: helloworld2
+      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD2 }}
+      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD2 }}
     steps:
       - uses: actions/checkout@v4
       - name: Authenticate
@@ -93,8 +93,8 @@ jobs:
     needs: deploy-helloworld2
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: test-xav
-      PROXY: helloworld3
+      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD3 }}
+      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD3 }}
     steps:
       - uses: actions/checkout@v4
       - name: Authenticate
