@@ -53,8 +53,6 @@ jobs:
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
 
-
-
       - name: Deploy Proxy
         run: |
           if [ -z "$REVISION" ]; then
