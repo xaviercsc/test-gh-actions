@@ -32,7 +32,7 @@ jobs:
       - name: Zip Proxy
         run: |
           cd apiproxies/${PROXY}
-          zip -r "${PROXY}.zip" apiproxy
+          zip -r "../../${PROXY}.zip" apiproxy
 
       - name: Debug Zip Contents
         run: unzip -l "${PROXY}.zip"
@@ -52,6 +52,7 @@ jobs:
             exit 1
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
+
 
 
       - name: Deploy Proxy
