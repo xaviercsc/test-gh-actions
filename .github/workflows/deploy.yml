@@ -3,7 +3,7 @@ name: Deploy Apigee Proxies Sequentially
 on:
   push:
     branches:
-      - main
+      - '**'   # run on all branches
 
 permissions:
   contents: read
@@ -11,17 +11,17 @@ permissions:
 
 jobs:
   # -------------------
-  # Deploy helloworld
+  # Deploy helloworld (dev)
   # -------------------
   deploy-helloworld:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD }}
-      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD }}
+      ENV: test-env
+      PROXY: helloworld
     steps:
       - uses: actions/checkout@v4
-
       - name: Authenticate
         id: auth
         uses: google-github-actions/auth@v2
@@ -31,15 +31,10 @@ jobs:
           service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
           token_format: 'access_token'
           access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
-
       - name: Zip Proxy
         run: |
           cd apiproxies/${PROXY}
           zip -r "../../${PROXY}.zip" apiproxy
-
-      - name: Debug Zip Contents
-        run: unzip -l "${PROXY}.zip"
-
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -55,7 +50,6 @@ jobs:
             exit 1
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
-
       - name: Deploy Proxy
         run: |
           curl --fail -X POST \
@@ -63,19 +57,21 @@ jobs:
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
   validate-helloworld:
+    if: github.ref != 'refs/heads/main'
     needs: deploy-helloworld
     uses: ./.github/workflows/validate-helloworld.yml
 
   # -------------------
-  # Deploy helloworld2
+  # Deploy helloworld2 (dev)
   # -------------------
   deploy-helloworld2:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: validate-helloworld
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD2 }}
-      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD2 }}
+      ENV: test-env
+      PROXY: helloworld2
     steps:
       - uses: actions/checkout@v4
       - name: Authenticate
@@ -106,8 +102,6 @@ jobs:
             exit 1
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
-      - name: Debug Import Response
-        run: cat import.json
       - name: Deploy Proxy
         run: |
           curl --fail -X POST \
@@ -115,19 +109,20 @@ jobs:
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
   validate-helloworld2:
+    if: github.ref != 'refs/heads/main'
     needs: deploy-helloworld2
     uses: ./.github/workflows/validate-helloworld2.yml
 
   # -------------------
-  # Deploy helloworld3
+  # Deploy helloworld3 (prod)
   # -------------------
   deploy-helloworld3:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: validate-helloworld2
     env:
       ORG: ${{ vars.APIGEE_ORG }}
-      ENV: ${{ vars.APIGEE_ENV_HELLOWORLD3 }}
-      PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD3 }}
+      ENV: test-xav
+      PROXY: helloworld3
     steps:
       - uses: actions/checkout@v4
       - name: Authenticate
@@ -143,8 +138,6 @@ jobs:
         run: |
           cd apiproxies/${PROXY}
           zip -r "../../${PROXY}.zip" apiproxy
-      - name: Debug Zip Contents
-        run: unzip -l "${PROXY}.zip"
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -154,12 +147,6 @@ jobs:
             -F "file=@${PROXY}.zip" \
             -o import.json
           echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
-      - name: Debug Import Response
-        run: cat import.json
-      - name: List Environments
-        run: |
-          curl -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
-            "https://apigee.googleapis.com/v1/organizations/$ORG/environments"
       - name: Deploy Proxy
         run: |
           if [ -z "$REVISION" ] || [ "$REVISION" = "null" ]; then
@@ -172,5 +159,6 @@ jobs:
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
   validate-helloworld3:
+    if: github.ref == 'refs/heads/main'
     needs: deploy-helloworld3
     uses: ./.github/workflows/validate-helloworld3.yml
