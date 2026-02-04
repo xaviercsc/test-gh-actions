@@ -44,6 +44,10 @@ jobs:
 
       - name: Deploy Proxy
         run: |
+          if [ -z "$REVISION" ]; then
+            echo "No revision found, aborting"
+            exit 1
+          fi
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
