@@ -153,10 +153,29 @@ jobs:
             -F "file=@${PROXY}.zip" \
             -o import.json
           echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+
+      - name: Debug Import Response
+        run: cat import.json
+
+      - name: List Environments
+        run: |
+          curl -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/environments"
+
       - name: Deploy Proxy
         run: |
+          if [ -z "$REVISION" ] || [ "$REVISION" = "null" ]; then
+            echo "No revision found, aborting"
+            cat import.json
+            exit 1
+          fi
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
+
+      - name: Make smoke test executable
+        run: chmod +x ./tests/helloworld3/smoke-test.sh
+
       - name: Validate Proxy
         run: ./tests/helloworld3/smoke-test.sh
+
