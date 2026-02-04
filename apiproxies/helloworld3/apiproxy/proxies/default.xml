@@ -1,6 +1,7 @@
 <ProxyEndpoint name="default">
   <HTTPProxyConnection>
     <BasePath>/helloworld3</BasePath>
+    <VirtualHost>default</VirtualHost>
   </HTTPProxyConnection>
   <RouteRule name="default">
     <TargetEndpoint>default</TargetEndpoint>

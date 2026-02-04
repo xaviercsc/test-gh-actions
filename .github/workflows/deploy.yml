@@ -178,6 +178,8 @@ jobs:
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
+      - name: Debug Smoke Test URL
+        run: echo "Testing https://$ORG-$ENV.apigee.net/${PROXY}"
 
       - name: Make smoke test executable
         run: chmod +x ./tests/helloworld3/smoke-test.sh
