@@ -30,7 +30,12 @@ jobs:
           access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
 
       - name: Zip Proxy
-        run: zip -r "${PROXY}.zip" "apiproxies/${PROXY}/apiproxy"
+        run: |
+          cd apiproxies/${PROXY}
+          zip -r "${PROXY}.zip" apiproxy
+
+      - name: Debug Zip Contents
+        run: unzip -l "${PROXY}.zip"
 
       - name: Import Proxy
         run: |
