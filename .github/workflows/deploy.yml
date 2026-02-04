@@ -89,7 +89,10 @@ jobs:
           token_format: 'access_token'
           access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
       - name: Zip Proxy
-        run: zip -r "${PROXY}.zip" "apiproxies/${PROXY}/apiproxy"
+        run: |
+          cd apiproxies/${PROXY}
+          zip -r "../../${PROXY}.zip" apiproxy
+
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -98,7 +101,17 @@ jobs:
             -H "Content-Type: multipart/form-data" \
             -F "file=@${PROXY}.zip" \
             -o import.json
-          echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+            REVISION=$(jq -r '.revision' import.json)
+            if [ "$REVISION" = "null" ] || [ -z "$REVISION" ]; then
+              echo "Import failed:"
+              cat import.json
+              exit 1
+            fi
+            echo "REVISION=$REVISION" >> $GITHUB_ENV
+
+      - name: Debug Import Response
+        run: cat import.json
+
       - name: Deploy Proxy
         run: |
           curl --fail -X POST \
