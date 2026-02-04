@@ -10,6 +10,9 @@ permissions:
   id-token: write
 
 jobs:
+  # -------------------
+  # Deploy helloworld
+  # -------------------
   deploy-helloworld:
     runs-on: ubuntu-latest
     env:
@@ -18,6 +21,7 @@ jobs:
       PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Authenticate
         id: auth
         uses: google-github-actions/auth@v2
@@ -27,12 +31,15 @@ jobs:
           service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
           token_format: 'access_token'
           access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
+
       - name: Zip Proxy
         run: |
           cd apiproxies/${PROXY}
           zip -r "../../${PROXY}.zip" apiproxy
+
       - name: Debug Zip Contents
         run: unzip -l "${PROXY}.zip"
+
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -48,19 +55,23 @@ jobs:
             exit 1
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
+
       - name: Deploy Proxy
         run: |
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
-    # Call reusable validation workflow
+  validate-helloworld:
+    needs: deploy-helloworld
     uses: ./.github/workflows/validate-helloworld.yml
 
-
+  # -------------------
+  # Deploy helloworld2
+  # -------------------
   deploy-helloworld2:
     runs-on: ubuntu-latest
-    needs: deploy-helloworld
+    needs: validate-helloworld
     env:
       ORG: ${{ vars.APIGEE_ORG }}
       ENV: ${{ vars.APIGEE_ENV_HELLOWORLD2 }}
@@ -103,12 +114,16 @@ jobs:
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
+  validate-helloworld2:
+    needs: deploy-helloworld2
     uses: ./.github/workflows/validate-helloworld2.yml
 
-
+  # -------------------
+  # Deploy helloworld3
+  # -------------------
   deploy-helloworld3:
     runs-on: ubuntu-latest
-    needs: deploy-helloworld2
+    needs: validate-helloworld2
     env:
       ORG: ${{ vars.APIGEE_ORG }}
       ENV: ${{ vars.APIGEE_ENV_HELLOWORLD3 }}
@@ -156,4 +171,6 @@ jobs:
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
+  validate-helloworld3:
+    needs: deploy-helloworld3
     uses: ./.github/workflows/validate-helloworld3.yml
