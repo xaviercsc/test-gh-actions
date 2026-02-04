@@ -1,0 +1,126 @@
+name: Deploy Apigee Proxies Sequentially
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-helloworld:
+    runs-on: ubuntu-latest
+    env:
+      ORG: ${{ vars.APIGEE_ORG }}
+      ENV: test-env
+      PROXY: helloworld
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.APIGEE_ORG }}
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
+          token_format: 'access_token'
+          access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
+
+      - name: Zip Proxy
+        run: zip -r "${PROXY}.zip" "apiproxies/${PROXY}/apiproxy"
+
+      - name: Import Proxy
+        run: |
+          curl -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/apis?action=import&name=$PROXY" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            -H "Content-Type: multipart/form-data" \
+            -F "file=@${PROXY}.zip" \
+            -o import.json
+          echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+
+      - name: Deploy Proxy
+        run: |
+          curl --fail -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
+
+      - name: Validate Proxy
+        run: ./tests/helloworld/smoke-test.sh
+
+  deploy-helloworld2:
+    runs-on: ubuntu-latest
+    needs: deploy-helloworld
+    env:
+      ORG: ${{ vars.APIGEE_ORG }}
+      ENV: test-env
+      PROXY: helloworld2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.APIGEE_ORG }}
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
+          token_format: 'access_token'
+          access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
+      - name: Zip Proxy
+        run: zip -r "${PROXY}.zip" "apiproxies/${PROXY}/apiproxy"
+      - name: Import Proxy
+        run: |
+          curl -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/apis?action=import&name=$PROXY" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            -H "Content-Type: multipart/form-data" \
+            -F "file=@${PROXY}.zip" \
+            -o import.json
+          echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+      - name: Deploy Proxy
+        run: |
+          curl --fail -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
+      - name: Validate Proxy
+        run: ./tests/helloworld2/smoke-test.sh
+
+  deploy-helloworld3:
+    runs-on: ubuntu-latest
+    needs: deploy-helloworld2
+    env:
+      ORG: ${{ vars.APIGEE_ORG }}
+      ENV: test-xav
+      PROXY: helloworld3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.APIGEE_ORG }}
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
+          token_format: 'access_token'
+          access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
+      - name: Zip Proxy
+        run: zip -r "${PROXY}.zip" "apiproxies/${PROXY}/apiproxy"
+      - name: Import Proxy
+        run: |
+          curl -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/apis?action=import&name=$PROXY" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
+            -H "Content-Type: multipart/form-data" \
+            -F "file=@${PROXY}.zip" \
+            -o import.json
+          echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
+      - name: Deploy Proxy
+        run: |
+          curl --fail -X POST \
+            "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
+            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
+      - name: Validate Proxy
+        run: ./tests/helloworld3/smoke-test.sh

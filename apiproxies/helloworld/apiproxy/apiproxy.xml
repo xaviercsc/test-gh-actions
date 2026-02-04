@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<APIProxy name="helloworld" revision="1">
+  <Description>Hello World minimal proxy</Description>
+  <Basepaths>/helloworld</Basepaths>
+  <ConfigurationVersion majorVersion="4" minorVersion="0"/>
+</APIProxy>

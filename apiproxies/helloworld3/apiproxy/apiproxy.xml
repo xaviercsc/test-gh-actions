@@ -1,0 +1,5 @@
+<APIProxy name="helloworld3" revision="1">
+  <Description>Hello World 3 proxy</Description>
+  <Basepaths>/helloworld3</Basepaths>
+  <ConfigurationVersion majorVersion="4" minorVersion="0"/>
+</APIProxy>
