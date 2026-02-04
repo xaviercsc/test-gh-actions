@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   # -------------------
-  # Deploy helloworld (dev)
+  # Deploy helloworld (dev1)
   # -------------------
   deploy-helloworld:
     if: github.ref != 'refs/heads/main'
@@ -62,7 +62,7 @@ jobs:
     uses: ./.github/workflows/validate-helloworld.yml
 
   # -------------------
-  # Deploy helloworld2 (dev)
+  # Deploy helloworld2 (dev2)
   # -------------------
   deploy-helloworld2:
     if: github.ref != 'refs/heads/main'
