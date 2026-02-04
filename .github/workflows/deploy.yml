@@ -18,7 +18,6 @@ jobs:
       PROXY: ${{ vars.APIGEE_PROXY_HELLOWORLD }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Authenticate
         id: auth
         uses: google-github-actions/auth@v2
@@ -28,15 +27,12 @@ jobs:
           service_account: ${{ secrets.APIGEE_SERVICE_ACCOUNT }}
           token_format: 'access_token'
           access_token_scopes: 'https://www.googleapis.com/auth/cloud-platform'
-
       - name: Zip Proxy
         run: |
           cd apiproxies/${PROXY}
           zip -r "../../${PROXY}.zip" apiproxy
-
       - name: Debug Zip Contents
         run: unzip -l "${PROXY}.zip"
-
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -52,22 +48,14 @@ jobs:
             exit 1
           fi
           echo "REVISION=$REVISION" >> $GITHUB_ENV
-
       - name: Deploy Proxy
         run: |
-          if [ -z "$REVISION" ]; then
-            echo "No revision found, aborting"
-            exit 1
-          fi
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
 
-      - name: Make smoke test executable
-        run: chmod +x ./tests/helloworld/smoke-test.sh
-
-      - name: Validate Proxy
-        run: ./tests/helloworld/smoke-test.sh
+    # Call reusable validation workflow
+    uses: ./.github/workflows/validate-helloworld.yml
 
 
   deploy-helloworld2:
@@ -92,7 +80,6 @@ jobs:
         run: |
           cd apiproxies/${PROXY}
           zip -r "../../${PROXY}.zip" apiproxy
-
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -101,27 +88,22 @@ jobs:
             -H "Content-Type: multipart/form-data" \
             -F "file=@${PROXY}.zip" \
             -o import.json
-            REVISION=$(jq -r '.revision' import.json)
-            if [ "$REVISION" = "null" ] || [ -z "$REVISION" ]; then
-              echo "Import failed:"
-              cat import.json
-              exit 1
-            fi
-            echo "REVISION=$REVISION" >> $GITHUB_ENV
-
+          REVISION=$(jq -r '.revision' import.json)
+          if [ "$REVISION" = "null" ] || [ -z "$REVISION" ]; then
+            echo "Import failed:"
+            cat import.json
+            exit 1
+          fi
+          echo "REVISION=$REVISION" >> $GITHUB_ENV
       - name: Debug Import Response
         run: cat import.json
-
       - name: Deploy Proxy
         run: |
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
-      - name: Make smoke test executable
-        run: chmod +x ./tests/${PROXY}/smoke-test.sh
 
-      - name: Validate Proxy
-        run: ./tests/${PROXY}/smoke-test.sh
+    uses: ./.github/workflows/validate-helloworld2.yml
 
 
   deploy-helloworld3:
@@ -148,8 +130,6 @@ jobs:
           zip -r "../../${PROXY}.zip" apiproxy
       - name: Debug Zip Contents
         run: unzip -l "${PROXY}.zip"
-
-
       - name: Import Proxy
         run: |
           curl -X POST \
@@ -159,15 +139,12 @@ jobs:
             -F "file=@${PROXY}.zip" \
             -o import.json
           echo "REVISION=$(jq -r '.revision' import.json)" >> $GITHUB_ENV
-
       - name: Debug Import Response
         run: cat import.json
-
       - name: List Environments
         run: |
           curl -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments"
-
       - name: Deploy Proxy
         run: |
           if [ -z "$REVISION" ] || [ "$REVISION" = "null" ]; then
@@ -178,12 +155,5 @@ jobs:
           curl --fail -X POST \
             "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$PROXY/revisions/$REVISION/deployments?override=true" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}"
-      - name: Debug Smoke Test URL
-        run: echo "Testing https://$ORG-$ENV.apigee.net/${PROXY}"
 
-      - name: Make smoke test executable
-        run: chmod +x ./tests/helloworld3/smoke-test.sh
-
-      - name: Validate Proxy
-        run: ./tests/helloworld3/smoke-test.sh
-
+    uses: ./.github/workflows/validate-helloworld3.yml

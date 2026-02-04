@@ -1,12 +1,14 @@
-name: Validate helloworld Proxy
+name: Validate Helloworld Proxy
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Make smoke test executable
+        run: chmod +x ./tests/helloworld/smoke-test.sh
       - name: Run smoke test
-        run: ./tests/helloworld/smoke-test.sh
+        run: bash ./tests/helloworld/smoke-test.sh
